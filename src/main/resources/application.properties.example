@@ -1,0 +1,2 @@
+spring.data.mongodb.uri=<connection string>
+spring.data.mongodb.database=<database name>
