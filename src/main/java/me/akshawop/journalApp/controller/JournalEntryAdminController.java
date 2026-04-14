@@ -5,7 +5,6 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -41,7 +40,7 @@ public class JournalEntryAdminController {
     }
 
     @GetMapping("/id/{id}")
-    public ResponseEntity<JournalEntry> getJournalEntryById(@NonNull @PathVariable String id) {
+    public ResponseEntity<JournalEntry> getJournalEntryById(@PathVariable String id) {
         try {
             JournalEntry entry = journalService.getEntryById(id);
             if (entry == null)
@@ -53,7 +52,7 @@ public class JournalEntryAdminController {
     }
 
     @PutMapping("/id/{id}")
-    public ResponseEntity<?> updateJournalById(@NonNull @PathVariable String id, @RequestBody JournalEntry entry) {
+    public ResponseEntity<?> updateJournalById(@PathVariable String id, @RequestBody JournalEntry entry) {
         try {
             JournalEntry oldEntry = journalService.getEntryById(id);
             // checks if the said entry exists
@@ -79,8 +78,8 @@ public class JournalEntryAdminController {
     }
 
     @PutMapping("/{username}/{id}")
-    public ResponseEntity<?> updateJournalOwner(@NonNull @PathVariable String username,
-            @NonNull @PathVariable String id) {
+    public ResponseEntity<?> updateJournalOwner(@PathVariable String username,
+            @PathVariable String id) {
         try {
             JournalEntry entry = journalService.getEntryById(id);
             // checks if the said entry exists

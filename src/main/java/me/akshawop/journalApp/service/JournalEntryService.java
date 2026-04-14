@@ -1,10 +1,12 @@
 package me.akshawop.journalApp.service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import lombok.NonNull;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import me.akshawop.journalApp.entity.JournalEntry;
 import me.akshawop.journalApp.entity.User;
@@ -18,7 +20,9 @@ public class JournalEntryService {
     @Autowired
     private UserService userService;
 
-    public void saveEntry(@NonNull JournalEntry entry, User user) {
+    @Transactional
+    public void saveEntry(@NonNull JournalEntry entry, @NonNull User user) {
+        entry.setCreatedAt(LocalDateTime.now());
         entry = repo.save(entry);
         user.getJournalEntries().add(entry);
         userService.saveUser(user);
@@ -40,6 +44,7 @@ public class JournalEntryService {
         repo.deleteById(id);
     }
 
+    @Transactional
     @SuppressWarnings("null")
     public void deleteEntry(@NonNull JournalEntry entry, @NonNull User user) {
         user.getJournalEntries().remove(entry);

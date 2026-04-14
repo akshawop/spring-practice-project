@@ -1,12 +1,10 @@
 package me.akshawop.journalApp.controller;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -31,7 +29,7 @@ public class JournalEntryController {
     private UserService userService;
 
     @GetMapping("/{username}")
-    public ResponseEntity<List<JournalEntry>> getAllJournalEntriesOfUser(@NonNull @PathVariable String username) {
+    public ResponseEntity<List<JournalEntry>> getAllJournalEntriesOfUser(@PathVariable String username) {
         try {
             User user = userService.getUserByUsername(username);
             if (user == null)
@@ -54,7 +52,6 @@ public class JournalEntryController {
             if (user == null)
                 return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 
-            entry.setCreatedAt(LocalDateTime.now());
             journalService.saveEntry(entry, user);
             return new ResponseEntity<>(HttpStatus.OK);
         } catch (Exception e) {
@@ -63,7 +60,7 @@ public class JournalEntryController {
     }
 
     @PutMapping("/{username}/{id}")
-    public ResponseEntity<?> updateJournalById(@NonNull @PathVariable String username, @NonNull @PathVariable String id,
+    public ResponseEntity<?> updateJournalById(@PathVariable String username, @PathVariable String id,
             @RequestBody JournalEntry entry) {
         try {
             JournalEntry oldEntry = journalService.getEntryById(id);
@@ -99,8 +96,8 @@ public class JournalEntryController {
     }
 
     @DeleteMapping("/{username}/{id}")
-    public ResponseEntity<?> deleteJournalById(@NonNull @PathVariable String username,
-            @NonNull @PathVariable String id) {
+    public ResponseEntity<?> deleteJournalById(@PathVariable String username,
+            @PathVariable String id) {
         try {
             User user = userService.getUserByUsername(username);
 
