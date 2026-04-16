@@ -16,9 +16,12 @@ import lombok.NonNull;
 public class JournalEntry {
     @Id
     private String id;
+
     @NonNull
     private String title;
+
     private String content;
+
     @Field("created_at")
     private LocalDateTime createdAt;
 }

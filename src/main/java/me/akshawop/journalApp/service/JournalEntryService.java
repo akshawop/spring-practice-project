@@ -21,7 +21,7 @@ public class JournalEntryService {
     private UserService userService;
 
     @Transactional
-    public void saveEntry(@NonNull JournalEntry entry, @NonNull User user) {
+    public void saveNewEntry(@NonNull JournalEntry entry, @NonNull User user) {
         entry.setCreatedAt(LocalDateTime.now());
         entry = repo.save(entry);
         user.getJournalEntries().add(entry);
@@ -38,6 +38,15 @@ public class JournalEntryService {
 
     public List<JournalEntry> getAllEntries() {
         return repo.findAll();
+    }
+
+    public void updateEntry(@NonNull JournalEntry oldEntry, @NonNull JournalEntry newEntryData) {
+        if (newEntryData.getTitle() != null)
+            oldEntry.setTitle(newEntryData.getTitle());
+        if (newEntryData.getContent() != null)
+            oldEntry.setContent(newEntryData.getContent());
+
+        repo.save(oldEntry);
     }
 
     public void deleteEntryById(@NonNull String id) {

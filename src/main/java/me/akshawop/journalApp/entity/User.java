@@ -20,14 +20,19 @@ import lombok.NonNull;
 public class User {
     @Id
     private String id;
+
     @Indexed(unique = true)
-    @NonNull
     private String username;
+
     @NonNull
     private String password;
+
+    @Field("joining_date")
+    private LocalDateTime joiningDate;
+
     @DBRef
     @Field("journal_entries")
     private List<JournalEntry> journalEntries = new ArrayList<>();
-    @Field("joining_date")
-    private LocalDateTime joiningDate;
+
+    private List<String> roles = new ArrayList<>();
 }

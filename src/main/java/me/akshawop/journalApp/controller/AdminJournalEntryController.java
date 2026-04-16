@@ -19,8 +19,8 @@ import me.akshawop.journalApp.service.JournalEntryService;
 import me.akshawop.journalApp.service.UserService;
 
 @RestController
-@RequestMapping("/journal/admin")
-public class JournalEntryAdminController {
+@RequestMapping("/admin/journal")
+public class AdminJournalEntryController {
     @Autowired
     private JournalEntryService journalService;
 
@@ -59,7 +59,7 @@ public class JournalEntryAdminController {
             if (oldEntry == null)
                 return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 
-            // checks if both the updatable parameters aren't empty
+            // checks if both the updatable parameters are empty
             if (entry.getContent() == null && entry.getTitle() == null)
                 return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
 
@@ -68,6 +68,8 @@ public class JournalEntryAdminController {
                 oldEntry.setTitle(entry.getTitle());
             if (entry.getContent() != null)
                 oldEntry.setContent(entry.getContent());
+            if (entry.getCreatedAt() != null)
+                oldEntry.setCreatedAt(entry.getCreatedAt());
 
             journalService.saveEntry(oldEntry);
 
