@@ -1,0 +1,6 @@
+spring:
+    data:
+        mongodb:
+            uri: <db-uri>
+            database: <db-name>
+            auto-index-creation: true
