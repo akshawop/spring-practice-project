@@ -1,6 +1,13 @@
 spring:
+    redis:
+        host: localhost
+        port: 6379
     data:
         mongodb:
             uri: <db-uri>
             database: <db-name>
             auto-index-creation: true
+
+server:
+    error:
+        include-stacktrace: never
