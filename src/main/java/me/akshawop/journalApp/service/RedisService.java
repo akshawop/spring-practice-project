@@ -49,4 +49,12 @@ public class RedisService {
             log.error("Exception occurred while setting a value in redis: " + e);
         }
     }
+
+    public void delete(@NonNull String key) {
+        try {
+            redis.delete(key);
+        } catch (Exception e) {
+            log.error("Exception occurred while setting a value in redis: " + e);
+        }
+    }
 }

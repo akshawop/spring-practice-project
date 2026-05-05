@@ -6,14 +6,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import me.akshawop.journalApp.exceptions.UsernameGenerationFailedException;
-import me.akshawop.journalApp.service.UserService;
+import me.akshawop.journalApp.repository.UserRepo;
 
 @Component
 public class GenerateUsername {
     @Autowired
-    private UserService service;
+    private UserRepo repo;
 
-    public String generate(String email) throws Exception {
+    public String generate(String email) throws UsernameGenerationFailedException, Exception {
         int maxRetries = 5;
         int iteration = 0;
         boolean success = false;
@@ -21,7 +21,7 @@ public class GenerateUsername {
         String username = email.substring(0, email.indexOf('@'));
         String newUsername = username + UUID.nameUUIDFromBytes(email.getBytes()).toString().substring(0, 6);
         do {
-            if (service.getUserByUsername(username) == null) {
+            if (repo.findByUsername(username) == null) {
                 success = true;
                 break;
             }
