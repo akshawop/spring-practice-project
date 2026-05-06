@@ -4,7 +4,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -12,10 +11,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import lombok.extern.slf4j.Slf4j;
-import me.akshawop.journalApp.dto.UserOTP;
-import me.akshawop.journalApp.dto.UserSignup;
-import me.akshawop.journalApp.dto.ValidateOTPBody;
 import me.akshawop.journalApp.entity.User;
+import me.akshawop.journalApp.model.UserOTP;
+import me.akshawop.journalApp.model.UserSignup;
+import me.akshawop.journalApp.model.ValidateOTPBody;
 import me.akshawop.journalApp.service.EmailService;
 import me.akshawop.journalApp.service.OTPService;
 import me.akshawop.journalApp.service.RedisService;
@@ -39,7 +38,8 @@ public class SignupController {
     @Autowired
     private EmailService emailService;
 
-    private PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     @PostMapping
     public ResponseEntity<?> signup(@RequestBody UserSignup userData) {

@@ -4,7 +4,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import lombok.NonNull;
@@ -27,7 +26,8 @@ public class UserService {
     @Autowired
     private GenerateUsername genUsername;
 
-    private PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     public void saveUser(@NonNull User user) {
         repo.save(user);
@@ -65,7 +65,7 @@ public class UserService {
         return repo.findByUsername(username);
     }
 
-    public User getUserByEmail(@NonNull String email){
+    public User getUserByEmail(@NonNull String email) {
         return repo.findByEmail(email);
     }
 

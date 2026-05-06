@@ -26,7 +26,7 @@ public class EmailService {
         }
     }
 
-    public void sendOTP(String to, String otp) {
+    public void sendOTPVerificationMail(String to, String otp) {
         String body = String
                 .format("Your OTP to verify your Email account is %s. Please do not share the OTP to anyone.", otp);
         String subject = "Verification Code to register to Journal App";

@@ -15,14 +15,14 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
-import me.akshawop.journalApp.service.UserDetailsServiceImpl;
+import me.akshawop.journalApp.service.ConfiguredUserDetailsService;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
     @Autowired
-    private UserDetailsServiceImpl userDetailsService;
+    private ConfiguredUserDetailsService userDetailsService;
 
     @Bean
     public @Nullable SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -30,8 +30,7 @@ public class SecurityConfig {
         return http.authorizeHttpRequests(request -> request
                 .requestMatchers("/public/**", "/signup/**").permitAll()
                 .requestMatchers("/journal/**", "/user/**").authenticated()
-                .requestMatchers("/admin/**").hasRole("ADMIN")
-                .anyRequest().authenticated())
+                .requestMatchers("/admin/**").hasRole("ADMIN").anyRequest().authenticated())
                 .httpBasic(Customizer.withDefaults())
                 .sessionManagement(x -> x.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .csrf(CsrfConfigurer::disable)
@@ -47,6 +46,6 @@ public class SecurityConfig {
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+        return new BCryptPasswordEncoder(); // default strength: 10
     }
 }

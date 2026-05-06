@@ -1,4 +1,4 @@
-package me.akshawop.journalApp.dto;
+package me.akshawop.journalApp.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

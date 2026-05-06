@@ -10,7 +10,7 @@ import me.akshawop.journalApp.entity.User;
 import me.akshawop.journalApp.repository.UserRepo;
 
 @Component
-public class UserDetailsServiceImpl implements UserDetailsService {
+public class ConfiguredUserDetailsService implements UserDetailsService {
     @Autowired
     private UserRepo repo;
 

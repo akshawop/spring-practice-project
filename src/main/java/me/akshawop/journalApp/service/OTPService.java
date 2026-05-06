@@ -4,8 +4,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import lombok.extern.slf4j.Slf4j;
-import me.akshawop.journalApp.dto.OTP;
-import me.akshawop.journalApp.dto.UserOTP;
+import me.akshawop.journalApp.model.OTP;
+import me.akshawop.journalApp.model.UserOTP;
 import me.akshawop.journalApp.util.SecretGenerator;
 import me.akshawop.journalApp.util.otp.OTPGenerator;
 import me.akshawop.journalApp.util.otp.OTPHasher;
@@ -32,7 +32,7 @@ public class OTPService {
             user.setOtp(otpDTO);
 
             redis.set(user.getEmail(), user, 300l);
-            emailService.sendOTP(user.getEmail(), otp);
+            emailService.sendOTPVerificationMail(user.getEmail(), otp);
             return 0;
         } catch (Exception e) {
             log.error("Exception in OTP service: ", e);
