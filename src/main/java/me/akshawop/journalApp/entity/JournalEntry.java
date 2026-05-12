@@ -6,22 +6,32 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.NonNull;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import lombok.*;
 
 @Document(collection = "journal_entries")
 @Data
 @NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class JournalEntry {
+
     @Id
     private String id;
 
     @NonNull
     private String title;
 
+    @NonNull
     private String content;
 
     @Field("created_at")
-    private LocalDateTime createdAt;
+    @Builder.Default
+    private LocalDateTime createdAt = LocalDateTime.now();
+
+    @Field("user_id")
+    @NonNull
+    @JsonIgnore
+    private String userId; // link to postgres user
 }

@@ -7,6 +7,14 @@ spring:
             uri: <db-uri>
             database: <db-name>
             auto-index-creation: true
+    datasource:
+        url: <db-uri>
+        username: <db-username>
+        password: <db-password>
+    jpa:
+        hibernate:
+            ddl-auto: update
+
     mail:
         host: <provider>
         port: <port>

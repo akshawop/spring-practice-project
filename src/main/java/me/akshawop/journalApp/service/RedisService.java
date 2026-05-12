@@ -9,10 +9,8 @@ import org.springframework.stereotype.Service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.NonNull;
-import lombok.extern.slf4j.Slf4j;
 
 @Service
-@Slf4j
 public class RedisService {
 
     @Autowired
@@ -34,7 +32,7 @@ public class RedisService {
             // Fallback: try to deserialize using ObjectMapper
             return objectMapper.readValue(obj.toString(), entity);
         } catch (Exception e) {
-            return null;
+            throw new RuntimeException("Exception occurred in redis service while getting a value", e);
         }
     }
 
@@ -46,7 +44,7 @@ public class RedisService {
             }
             redis.opsForValue().set(key, value, ttl, TimeUnit.SECONDS);
         } catch (Exception e) {
-            log.error("Exception occurred while setting a value in redis: " + e);
+            throw new RuntimeException("Exception occurred in redis service while setting a value", e);
         }
     }
 
@@ -54,7 +52,7 @@ public class RedisService {
         try {
             redis.delete(key);
         } catch (Exception e) {
-            log.error("Exception occurred while setting a value in redis: " + e);
+            throw new RuntimeException("Exception occurred in redis service while deleting a value", e);
         }
     }
 }

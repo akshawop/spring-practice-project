@@ -1,33 +1,34 @@
 package me.akshawop.journalApp.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import lombok.extern.slf4j.Slf4j;
 import me.akshawop.journalApp.entity.User;
-import me.akshawop.journalApp.model.UserOTP;
-import me.akshawop.journalApp.model.UserSignup;
-import me.akshawop.journalApp.model.ValidateOTPBody;
+import me.akshawop.journalApp.exception.DuplicateUserRegistrationException;
+import me.akshawop.journalApp.exception.GenericNotFoundException;
+import me.akshawop.journalApp.exception.OTPValidationFailedException;
+import me.akshawop.journalApp.model.UserDTO;
 import me.akshawop.journalApp.service.EmailService;
 import me.akshawop.journalApp.service.OTPService;
 import me.akshawop.journalApp.service.RedisService;
 import me.akshawop.journalApp.service.UserService;
-import me.akshawop.journalApp.util.RegexPatterns;
 
 @RestController
-@Slf4j
 @RequestMapping("/signup")
 public class SignupController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     @Autowired
     private OTPService otpService;
@@ -38,79 +39,44 @@ public class SignupController {
     @Autowired
     private EmailService emailService;
 
-    @Autowired
-    private PasswordEncoder passwordEncoder;
-
     @PostMapping
-    public ResponseEntity<?> signup(@RequestBody UserSignup userData) {
-        try {
+    public ResponseEntity<HttpStatus> signup(@Validated(UserDTO.OnSignup.class) @RequestBody UserDTO userData) {
 
-            // email and password validation
-            boolean isEmailValid = RegexPatterns.EMAIL.matcher(userData.getEmail()).find();
-            boolean isPasswordValid = RegexPatterns.PASSWORD.matcher(userData.getPassword()).find();
-            if (!(isEmailValid && isPasswordValid)) {
-                return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-            }
+        // check if the email is already registered
+        if (userService.getUserByEmail(userData.getEmail()) != null)
+            throw new DuplicateUserRegistrationException("This email is already registered");
 
-            // check if the email is already registered
-            if (userService.getUserByEmail(userData.getEmail()) != null)
-                return new ResponseEntity<>(HttpStatus.CONFLICT);
+        // encode the password before saving to redis
+        userData.setPassword(passwordEncoder.encode(userData.getPassword()));
 
-            // prepare user data for further processing and hash the password
-            UserOTP userOtp = new UserOTP();
-            userOtp.setEmail(userData.getEmail());
-            userOtp.setPassword(passwordEncoder.encode(userData.getPassword()));
+        // generate and send otp to the user's email for verification
+        String otp = otpService.getOTP(userData);
+        emailService.sendOTPVerificationMail(userData.getEmail(), otp);
 
-            // create and send otp to the user's email
-            if (otpService.sendOTP(userOtp) == 0)
-                return new ResponseEntity<>(HttpStatus.OK);
-            else
-                return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-
-        } catch (NullPointerException e) {
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-        } catch (DuplicateKeyException e) {
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-        } catch (Exception e) {
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
     @PostMapping("/validate-otp")
-    public ResponseEntity<?> validateOtpAndSaveUser(@RequestBody ValidateOTPBody body) {
-        try {
+    public ResponseEntity<User> validateOtpAndSaveUser(
+            @Validated(UserDTO.OnOtpValidate.class) @RequestBody UserDTO body) {
 
-            // check if email is valid
-            boolean isEmailValid = RegexPatterns.EMAIL.matcher(body.email()).find();
-            if (!isEmailValid)
-                return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        // check if the email already registered
+        if (userService.getUserByEmail(body.getEmail()) != null)
+            throw new DuplicateUserRegistrationException("This email is already registered");
 
-            // check if the email already registered
-            if (userService.getUserByEmail(body.email()) != null)
-                return new ResponseEntity<>(HttpStatus.CONFLICT);
+        // check if the email is waiting in redis for verification
+        UserDTO tempUser = redis.get(body.getEmail(), UserDTO.class);
+        if (tempUser == null)
+            throw new GenericNotFoundException("Not such email found to be waiting for verification");
 
-            // check if the email is waiting in redis for verification
-            UserSignup tempUser = redis.get(body.email(), UserSignup.class);
-            if (tempUser == null)
-                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        // validate the otp
+        if (!otpService.validate(body.getEmail(), body.getCode()))
+            throw new OTPValidationFailedException("Incorrect OTP provided");
 
-            // validate the otp
-            if (!otpService.validate(body.email(), body.code()))
-                return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        // save the new user to db and send confirmation mail
+        User savedUser = userService.saveNewUser(tempUser);
 
-            // save the new user to db and send confirmation mail
-            User user = User.builder().email(tempUser.getEmail()).password(tempUser.getPassword()).build();
-            if (userService.saveNewUser(user) == 0) {
-                String username = userService.getUserByEmail(user.getEmail()).getUsername();
-                emailService.sendSignupSuccessMail(user.getEmail(), username);
-
-                return new ResponseEntity<>(HttpStatus.CREATED);
-            } else
-                return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-
-        } catch (Exception e) {
-            log.error("Exception in Signup controller: ", e);
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+        emailService.sendSignupSuccessMail(savedUser.getEmail(), savedUser.getUsername());
+        return new ResponseEntity<>(savedUser, HttpStatus.CREATED);
     }
 }

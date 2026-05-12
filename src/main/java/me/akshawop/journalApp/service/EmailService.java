@@ -5,15 +5,14 @@ import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
-import lombok.extern.slf4j.Slf4j;
+import lombok.NonNull;
 
 @Service
-@Slf4j
 public class EmailService {
     @Autowired
     private JavaMailSender javaMailSender;
 
-    public void sendEmail(String to, String subject, String body) {
+    public void sendEmail(@NonNull String to, @NonNull String subject, @NonNull String body) {
         try {
             SimpleMailMessage mail = new SimpleMailMessage();
             mail.setTo(to);
@@ -22,18 +21,18 @@ public class EmailService {
 
             javaMailSender.send(mail);
         } catch (Exception e) {
-            log.error("Exception occurred while sending mail: ", e);
+            throw new RuntimeException("Exception occurred in Email service", e);
         }
     }
 
-    public void sendOTPVerificationMail(String to, String otp) {
+    public void sendOTPVerificationMail(@NonNull String to, @NonNull String otp) {
         String body = String
                 .format("Your OTP to verify your Email account is %s. Please do not share the OTP to anyone.", otp);
         String subject = "Verification Code to register to Journal App";
         sendEmail(to, subject, body);
     }
 
-    public void sendSignupSuccessMail(String to, String username) {
+    public void sendSignupSuccessMail(@NonNull String to, @NonNull String username) {
         String subject = "Journal App account signup Successful";
         String body = String.format("Thank you for signing up in our application :)\nYour username is %s\n\nEnjoy!",
                 username);

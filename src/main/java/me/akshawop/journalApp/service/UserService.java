@@ -1,103 +1,134 @@
 package me.akshawop.journalApp.service;
 
-import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.crypto.password.PasswordEncoder;
 
 import lombok.NonNull;
-import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import me.akshawop.journalApp.entity.JournalEntry;
 import me.akshawop.journalApp.entity.User;
-import me.akshawop.journalApp.exceptions.UsernameGenerationFailedException;
+import me.akshawop.journalApp.entity.UserRoles;
+import me.akshawop.journalApp.exception.DuplicateUserRegistrationException;
+import me.akshawop.journalApp.exception.UserNotFoundException;
+import me.akshawop.journalApp.exception.UsernameAlreadyTakenException;
+import me.akshawop.journalApp.model.UserDTO;
+import me.akshawop.journalApp.repository.JournalEntryRepo;
 import me.akshawop.journalApp.repository.UserRepo;
 import me.akshawop.journalApp.util.GenerateUsername;
 
 @Service
-@Slf4j
 public class UserService {
     @Autowired
-    private UserRepo repo;
+    private UserRepo userRepo;
+
+    @Autowired
+    private JournalEntryRepo journalRepo;
 
     @Autowired
     private GenerateUsername genUsername;
 
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+    @SuppressWarnings("null")
+    public User saveNewUser(@NonNull UserDTO userData) {
 
-    public void saveUser(@NonNull User user) {
-        repo.save(user);
-    }
+        if (userRepo.findByEmail(userData.getEmail()).isPresent())
+            throw new DuplicateUserRegistrationException("This email is already registered");
 
-    public int saveNewUser(@NonNull User user) {
-        try {
+        // extract the username from email
+        String username = (userData.getEmail().substring(0,
+                userData.getEmail().indexOf('@')));
 
-            // extract the username from email
-            String username = user.getEmail().substring(0,
-                    user.getEmail().indexOf('@'));
-            // check if the username already exists in db; if so, make it unique
-            if (getUserByUsername(username) != null) {
-                username = genUsername.generate(user.getEmail());
-            }
-            user.setUsername(username);
-            user.setJoiningDate(LocalDateTime.now());
-
-            repo.save(user);
-            return 0;
-        } catch (UsernameGenerationFailedException e) {
-            log.error("could not generate a username for this user", e);
-            return 1;
-        } catch (Exception e) {
-            log.error("Error occurred while saving user: ", e);
-            return 1;
+        // pad with random uuid if length is less than 4
+        if (username.length() < 4) {
+            username = (username + UUID.randomUUID()).substring(0, 4);
         }
+
+        if (username.length() > 20)
+            username = username.substring(0, 20);
+
+        // check if the username already exists in db; if so, try to generate new
+        if (userRepo.findByUsername(username).isPresent()) {
+            username = genUsername.generate(userData.getEmail());
+        }
+
+        User user = User.builder()
+                .email(userData.getEmail())
+                .password(userData.getPassword())
+                .username(username)
+                .roles(new ArrayList<>(List.of(UserRoles.USER)))
+                .build();
+
+        return userRepo.save(user);
     }
 
     public List<User> getAllUsers() {
-        return repo.findAll();
+        return userRepo.findAll();
     }
 
     public User getUserByUsername(@NonNull String username) {
-        return repo.findByUsername(username);
+        return userRepo.findByUsername(username)
+                .orElse(null);
     }
 
     public User getUserByEmail(@NonNull String email) {
-        return repo.findByEmail(email);
+        return userRepo.findByEmail(email)
+                .orElse(null);
     }
 
-    public void assignJournalToUser(@NonNull User user, @NonNull JournalEntry entry) {
-        if (user.getJournalEntries().contains(entry))
-            return;
+    // public void updateUser(@NonNull User oldUser, @NonNull User newUserData) {
+    // // update and store the new data
+    // oldUser.setUsername(newUserData.getUsername());
+    // oldUser.setPassword(passwordEncoder.encode(newUserData.getPassword()));
 
-        user.getJournalEntries().add(entry);
-        repo.save(user);
-    }
+    // userRepo.save(oldUser);
+    // }
 
-    public void updateUser(@NonNull User oldUser, @NonNull User newUserData) {
-        // update and store the new data
-        oldUser.setUsername(newUserData.getUsername());
-        oldUser.setPassword(passwordEncoder.encode(newUserData.getPassword()));
+    // public void updateUserAdmin(@NonNull User oldUser, @NonNull User newUserData)
+    // {
+    // // update and store the new data
+    // oldUser.setUsername(newUserData.getUsername());
+    // oldUser.setPassword(passwordEncoder.encode(newUserData.getPassword()));
+    // if (!newUserData.getRoles().isEmpty())
+    // oldUser.setRoles(newUserData.getRoles());
+    // if (newUserData.getJoiningDate() != null)
+    // oldUser.setJoiningDate(newUserData.getJoiningDate());
 
-        repo.save(oldUser);
-    }
+    // userRepo.save(oldUser);
+    // }
 
-    public void updateUserAdmin(@NonNull User oldUser, @NonNull User newUserData) {
-        // update and store the new data
-        oldUser.setUsername(newUserData.getUsername());
-        oldUser.setPassword(passwordEncoder.encode(newUserData.getPassword()));
-        if (!newUserData.getRoles().isEmpty())
-            oldUser.setRoles(newUserData.getRoles());
-        if (newUserData.getJoiningDate() != null)
-            oldUser.setJoiningDate(newUserData.getJoiningDate());
-
-        repo.save(oldUser);
-    }
-
+    @Transactional
     public void deleteUserByUsername(@NonNull String username) {
-        repo.deleteByUsername(username);
+        User user = userRepo.findByUsername(username)
+                .orElseThrow(() -> new UserNotFoundException(username, UserNotFoundException.USERNAME));
+
+        userRepo.deleteByUsername(user.getUsername());
+        journalRepo.deleteAllByUserId(user.getId().toString());
+    }
+
+    public void makeAdmin(@NonNull String username) {
+
+        User user = userRepo.findByUsername(username)
+                .orElseThrow(() -> new UserNotFoundException(username, UserNotFoundException.USERNAME));
+
+        user.getRoles().add(UserRoles.ADMIN);
+        userRepo.save(user);
+    }
+
+    public User changeUsername(String oldUsername, String newUsername) {
+
+        User user = userRepo.findByUsername(oldUsername)
+                .orElseThrow(() -> new UserNotFoundException(oldUsername, UserNotFoundException.USERNAME));
+
+        if (userRepo.findByUsername(newUsername).isPresent()) {
+            throw new UsernameAlreadyTakenException("Username " + newUsername
+                    + " is already taken, try a different username. You can check if a username is available on /check-username?username=value");
+        }
+
+        user.setUsername(newUsername);
+        return userRepo.save(user);
     }
 }
