@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.kafka.core.KafkaTemplate;
 
 import lombok.NonNull;
 
@@ -17,7 +18,6 @@ import me.akshawop.journalApp.exception.DuplicateUserRegistrationException;
 import me.akshawop.journalApp.exception.UserNotFoundException;
 import me.akshawop.journalApp.exception.UsernameAlreadyTakenException;
 import me.akshawop.journalApp.model.UserDTO;
-import me.akshawop.journalApp.repository.JournalEntryRepo;
 import me.akshawop.journalApp.repository.UserRepo;
 import me.akshawop.journalApp.util.GenerateUsername;
 
@@ -27,10 +27,10 @@ public class UserService {
     private UserRepo userRepo;
 
     @Autowired
-    private JournalEntryRepo journalRepo;
+    private GenerateUsername genUsername;
 
     @Autowired
-    private GenerateUsername genUsername;
+    private KafkaTemplate<String, String> kafka;
 
     @SuppressWarnings("null")
     public User saveNewUser(@NonNull UserDTO userData) {
@@ -106,7 +106,7 @@ public class UserService {
                 .orElseThrow(() -> new UserNotFoundException(username, UserNotFoundException.USERNAME));
 
         userRepo.deleteByUsername(user.getUsername());
-        journalRepo.deleteAllByUserId(user.getId().toString());
+        kafka.send("user.account.deleted", user.getId().toString());
     }
 
     public void makeAdmin(@NonNull String username) {

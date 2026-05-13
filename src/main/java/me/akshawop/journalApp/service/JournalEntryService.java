@@ -3,6 +3,8 @@ package me.akshawop.journalApp.service;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.support.Acknowledgment;
 
 import lombok.NonNull;
 import org.springframework.stereotype.Service;
@@ -109,5 +111,12 @@ public class JournalEntryService {
                 .orElseThrow(() -> new JournalNotFoundException(journalId));
 
         journalRepo.deleteById(journalId);
+    }
+
+    @KafkaListener(topics = "user.account.deleted", groupId = "user-deletion-journal-cleanup-group")
+    public void deleteEntryByUserId(String userId, Acknowledgment ack) {
+        journalRepo.deleteAllByUserId(userId);
+
+        ack.acknowledge();
     }
 }

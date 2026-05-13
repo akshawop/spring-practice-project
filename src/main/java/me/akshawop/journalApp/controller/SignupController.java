@@ -3,6 +3,7 @@ package me.akshawop.journalApp.controller;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -38,6 +39,9 @@ public class SignupController {
 
     @Autowired
     private EmailService emailService;
+
+    @Autowired
+    private KafkaTemplate<String, User> kafka;
 
     @PostMapping
     public ResponseEntity<HttpStatus> signup(@Validated(UserDTO.OnSignup.class) @RequestBody UserDTO userData) {
@@ -76,7 +80,7 @@ public class SignupController {
         // save the new user to db and send confirmation mail
         User savedUser = userService.saveNewUser(tempUser);
 
-        emailService.sendSignupSuccessMail(savedUser.getEmail(), savedUser.getUsername());
+        kafka.send("user.account.created", savedUser);
         return new ResponseEntity<>(savedUser, HttpStatus.CREATED);
     }
 }
