@@ -1,14 +1,16 @@
 package me.akshawop.journalApp.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
+import com.github.sonus21.rqueue.annotation.RqueueListener;
+
 import lombok.NonNull;
 import me.akshawop.journalApp.entity.User;
+import me.akshawop.journalApp.util.queue.QueueConstants;
+import me.akshawop.journalApp.util.queue.dto.EmailJob;
 
 @Service
 public class EmailService {
@@ -28,6 +30,11 @@ public class EmailService {
         }
     }
 
+    @RqueueListener(value = QueueConstants.EMAIL_QUEUE, numRetries = "3")
+    public void emailQueueConsumer(EmailJob job) {
+        sendEmail(job.getTo(), job.getSubject(), job.getBody());
+    }
+
     public void sendOTPVerificationMail(@NonNull String to, @NonNull String otp) {
         String body = String
                 .format("Your OTP to verify your Email account is %s. Please do not share the OTP to anyone.", otp);
@@ -35,13 +42,12 @@ public class EmailService {
         sendEmail(to, subject, body);
     }
 
-    @KafkaListener(topics = "user.account.created", groupId = "signup-success-email-service-group")
-    public void sendSignupSuccessMail(@NonNull User user, Acknowledgment ack) {
+    public static EmailJob getSignupSuccessMail(@NonNull User user) {
+
         String subject = "Journal App account signup Successful";
         String body = String.format("Thank you for signing up in our application :)\nYour username is %s\n\nEnjoy!",
                 user.getUsername());
-        sendEmail(user.getEmail(), subject, body);
+        return new EmailJob("v1", user.getEmail(), subject, body);
 
-        ack.acknowledge();
     }
 }

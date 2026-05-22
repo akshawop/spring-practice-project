@@ -65,7 +65,7 @@ public class SignupController {
             throw new DuplicateUserRegistrationException("This email is already registered");
 
         // check if the email is waiting in redis for verification
-        UserDTO tempUser = redis.get(body.getEmail(), UserDTO.class);
+        UserDTO tempUser = redis.get("OTP:" + body.getEmail(), UserDTO.class);
         if (tempUser == null)
             throw new GenericNotFoundException("Not such email found to be waiting for verification");
 

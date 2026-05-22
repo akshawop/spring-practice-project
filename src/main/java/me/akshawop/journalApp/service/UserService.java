@@ -5,12 +5,13 @@ import java.util.List;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.kafka.core.KafkaTemplate;
 
 import lombok.NonNull;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import me.akshawop.journalApp.entity.User;
 import me.akshawop.journalApp.entity.UserRoles;
@@ -20,6 +21,7 @@ import me.akshawop.journalApp.exception.UsernameAlreadyTakenException;
 import me.akshawop.journalApp.model.UserDTO;
 import me.akshawop.journalApp.repository.UserRepo;
 import me.akshawop.journalApp.util.GenerateUsername;
+import me.akshawop.journalApp.util.queue.dto.EmailJob;
 
 @Service
 public class UserService {
@@ -30,12 +32,10 @@ public class UserService {
     private GenerateUsername genUsername;
 
     @Autowired
-    private KafkaTemplate<String, User> kafkaCreatedTopic;
-
-    @Autowired
-    private KafkaTemplate<String, UUID> kafkaDeletedTopic;
+    private QueueService queueService;
 
     @SuppressWarnings("null")
+    @Transactional
     public User saveNewUser(@NonNull UserDTO userData) {
 
         if (userRepo.findByEmail(userData.getEmail()).isPresent())
@@ -66,7 +66,17 @@ public class UserService {
                 .build();
 
         user = userRepo.save(user);
-        kafkaCreatedTopic.send("user.account.created", user);
+        EmailJob job = EmailService.getSignupSuccessMail(user);
+
+        TransactionSynchronizationManager
+                .registerSynchronization(
+                        new TransactionSynchronization() {
+
+                            @Override
+                            public void afterCommit() {
+                                queueService.publishEmail(job);
+                            }
+                        });
 
         return user;
 
@@ -92,7 +102,16 @@ public class UserService {
                 .orElseThrow(() -> new UserNotFoundException(username, UserNotFoundException.USERNAME));
 
         userRepo.deleteByUsername(user.getUsername());
-        kafkaDeletedTopic.send("user.account.deleted", user.getId());
+
+        TransactionSynchronizationManager
+                .registerSynchronization(
+                        new TransactionSynchronization() {
+
+                            @Override
+                            public void afterCommit() {
+                                queueService.publishDeleteUserData(user.getId());
+                            }
+                        });
     }
 
     public void makeAdmin(@NonNull String username) {

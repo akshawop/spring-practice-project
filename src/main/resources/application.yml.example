@@ -23,6 +23,10 @@ spring:
                     starttls:
                         enable: true
 
+rqueue:
+  retry:
+    enabled: true
+
 server:
     error:
         include-stacktrace: never

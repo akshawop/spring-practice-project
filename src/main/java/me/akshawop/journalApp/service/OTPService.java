@@ -27,7 +27,7 @@ public class OTPService {
             OTP otpDTO = new OTP(OTPHasher.hmacSha256(otp, secret), "K0");
             user.setOtp(otpDTO);
 
-            redis.set(user.getEmail(), user, 300l);
+            redis.set("OTP:" + user.getEmail(), user, 300l);
             return otp;
 
         } catch (Exception e) {
@@ -38,7 +38,7 @@ public class OTPService {
     public boolean validate(String email, String otp) {
         try {
 
-            UserDTO user = redis.get(email, UserDTO.class);
+            UserDTO user = redis.get("OTP:" + email, UserDTO.class);
             if (user == null)
                 return false;
 

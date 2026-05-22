@@ -4,20 +4,19 @@ import java.util.List;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.kafka.support.Acknowledgment;
 
 import lombok.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
+
+import com.github.sonus21.rqueue.annotation.RqueueListener;
 
 import me.akshawop.journalApp.entity.JournalEntry;
 import me.akshawop.journalApp.exception.AccessDeniedException;
 import me.akshawop.journalApp.exception.JournalNotFoundException;
 import me.akshawop.journalApp.model.JournalEntryDTO;
 import me.akshawop.journalApp.repository.JournalEntryRepo;
+import me.akshawop.journalApp.util.queue.QueueConstants;
 
 @Service
 public class JournalEntryService {
@@ -103,17 +102,9 @@ public class JournalEntryService {
         journalRepo.deleteById(journalId);
     }
 
-    @KafkaListener(topics = "user.account.deleted", containerFactory = "manualImmediateFactory", groupId = "user-deletion-journal-cleanup-group")
+    @RqueueListener(value = QueueConstants.USER_DATA_CLEANUP_QUEUE, numRetries = "3")
     @Transactional
-    public void deleteEntryByUserId(UUID userId, Acknowledgment ack) {
+    public void deleteEntryByUserId(UUID userId) {
         journalRepo.deleteAllByUserId(userId);
-
-        TransactionSynchronizationManager.registerSynchronization(
-                new TransactionSynchronization() {
-                    @Override
-                    public void afterCommit() {
-                        ack.acknowledge();
-                    }
-                });
     }
 }
